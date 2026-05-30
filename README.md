@@ -1,5 +1,5 @@
 <p align="center">
-  <strong>Lambda Security Scanner</strong>
+  <img src="https://raw.githubusercontent.com/TocConsulting/lambda-security-scanner/main/assets/lambda-security-scanner-logo.png" alt="Lambda Security Scanner" style="max-width: 100%; height: auto;">
 </p>
 
 <p align="center">
