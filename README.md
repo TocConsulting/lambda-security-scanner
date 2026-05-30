@@ -3,6 +3,10 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/lambda-security-scanner/"><img src="https://img.shields.io/pypi/v/lambda-security-scanner.svg" alt="PyPI version"></a>
+  <a href="https://pepy.tech/project/lambda-security-scanner"><img src="https://static.pepy.tech/badge/lambda-security-scanner" alt="Downloads"></a>
+  <a href="https://hub.docker.com/r/tarekcheikh/lambda-security-scanner"><img src="https://img.shields.io/docker/v/tarekcheikh/lambda-security-scanner?label=docker&logo=docker" alt="Docker"></a>
+  <a href="https://hub.docker.com/r/tarekcheikh/lambda-security-scanner"><img src="https://img.shields.io/docker/pulls/tarekcheikh/lambda-security-scanner" alt="Docker Pulls"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-brightgreen.svg" alt="License: MIT"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python"></a>
   <a href="https://aws.amazon.com/lambda/"><img src="https://img.shields.io/badge/AWS-Lambda-orange.svg" alt="AWS"></a>
