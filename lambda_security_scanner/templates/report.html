@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lambda Security Scanner Report</title>
+    <style>
+        :root {
+            --bg: #0f172a; --card: #1e293b; --border: #334155;
+            --text: #e2e8f0; --text-heading: #e2e8f0;
+            --text-muted: #94a3b8; --text-dim: #64748b;
+            --header-gradient: linear-gradient(135deg, #1e293b, #334155);
+            --th-bg: #334155; --hover-bg: #253349;
+            --accent: #38bdf8; --danger: #f87171;
+            --warning: #fbbf24; --success: #34d399;
+            --critical: #ef4444; --high: #f97316;
+            --medium: #eab308; --low: #3b82f6; --info: #06b6d4;
+            --bar-track: #334155;
+            --badge-critical-bg: #7f1d1d; --badge-critical-fg: #fca5a5;
+            --badge-high-bg: #7c2d12; --badge-high-fg: #fdba74;
+            --badge-medium-bg: #713f12; --badge-medium-fg: #fde68a;
+            --badge-low-bg: #1e3a5f; --badge-low-fg: #93c5fd;
+            --badge-info-bg: #164e63; --badge-info-fg: #67e8f9;
+            --score-high-bg: #166534; --score-high-fg: #bbf7d0;
+            --score-mid-bg: #854d0e; --score-mid-fg: #fef08a;
+            --score-low-bg: #991b1b; --score-low-fg: #fecaca;
+            --fn-name: #e2e8f0;
+            --pct-good: #34d399; --pct-warn: #fbbf24; --pct-bad: #f87171;
+            --link: #64748b;
+        }
+        [data-theme="light"] {
+            --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+            --text: #1e293b; --text-heading: #0f172a;
+            --text-muted: #64748b; --text-dim: #94a3b8;
+            --header-gradient: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+            --th-bg: #f1f5f9; --hover-bg: #f1f5f9;
+            --accent: #0284c7; --danger: #dc2626;
+            --warning: #d97706; --success: #16a34a;
+            --critical: #dc2626; --high: #ea580c;
+            --medium: #ca8a04; --low: #2563eb; --info: #0891b2;
+            --bar-track: #e2e8f0;
+            --badge-critical-bg: #fee2e2; --badge-critical-fg: #dc2626;
+            --badge-high-bg: #ffedd5; --badge-high-fg: #ea580c;
+            --badge-medium-bg: #fef9c3; --badge-medium-fg: #ca8a04;
+            --badge-low-bg: #dbeafe; --badge-low-fg: #2563eb;
+            --badge-info-bg: #cffafe; --badge-info-fg: #0891b2;
+            --score-high-bg: #dcfce7; --score-high-fg: #166534;
+            --score-mid-bg: #fef9c3; --score-mid-fg: #854d0e;
+            --score-low-bg: #fee2e2; --score-low-fg: #991b1b;
+            --fn-name: #0f172a;
+            --pct-good: #16a34a; --pct-warn: #d97706; --pct-bad: #dc2626;
+            --link: #3b82f6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont,
+                "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg); color: var(--text);
+            line-height: 1.6; padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { font-size: 1.8rem; margin-bottom: 5px; color: var(--text-heading); }
+        h2 {
+            font-size: 1.3rem; margin: 30px 0 15px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px; color: var(--text-heading);
+        }
+        .header {
+            background: var(--header-gradient);
+            padding: 25px 30px; border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        .header .subtitle {
+            color: var(--text-muted); font-size: 0.9rem;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px; margin-bottom: 25px;
+        }
+        .card {
+            background: var(--card); border-radius: 10px;
+            padding: 20px; text-align: center;
+            border: 1px solid var(--border);
+        }
+        .card .value {
+            font-size: 2rem; font-weight: 700;
+            color: var(--accent);
+        }
+        .card .label {
+            color: var(--text-muted); font-size: 0.85rem;
+            margin-top: 4px;
+        }
+        .card.danger .value { color: var(--danger); }
+        .card.warning .value { color: var(--warning); }
+        .card.success .value { color: var(--success); }
+        table {
+            width: 100%; border-collapse: collapse;
+            background: var(--card); border-radius: 8px;
+            overflow: hidden; margin-bottom: 20px;
+        }
+        th {
+            background: var(--th-bg); padding: 12px 15px;
+            text-align: left; font-weight: 600;
+            font-size: 0.85rem; text-transform: uppercase;
+            letter-spacing: 0.05em; color: var(--text-muted);
+        }
+        td {
+            padding: 10px 15px; border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--hover-bg); }
+        .bar-container {
+            background: var(--bar-track); border-radius: 4px;
+            height: 22px; overflow: hidden;
+        }
+        .bar {
+            height: 100%; border-radius: 4px;
+            min-width: 2px; transition: width 0.3s;
+        }
+        .bar-critical { background: var(--critical); }
+        .bar-high { background: var(--high); }
+        .bar-medium { background: var(--medium); }
+        .bar-low { background: var(--low); }
+        .bar-info { background: var(--info); }
+        .score-bar-0-20 { background: var(--critical); }
+        .score-bar-21-40 { background: var(--high); }
+        .score-bar-41-60 { background: var(--medium); }
+        .score-bar-61-80 { background: var(--low); }
+        .score-bar-81-100 { background: var(--success); }
+        .badge {
+            display: inline-block; padding: 2px 10px;
+            border-radius: 12px; font-size: 0.75rem;
+            font-weight: 600; text-transform: uppercase;
+        }
+        .badge-critical { background: var(--badge-critical-bg); color: var(--badge-critical-fg); }
+        .badge-high { background: var(--badge-high-bg); color: var(--badge-high-fg); }
+        .badge-medium { background: var(--badge-medium-bg); color: var(--badge-medium-fg); }
+        .badge-low { background: var(--badge-low-bg); color: var(--badge-low-fg); }
+        .badge-info { background: var(--badge-info-bg); color: var(--badge-info-fg); }
+        .function-card {
+            background: var(--card); border-radius: 10px;
+            padding: 20px; margin-bottom: 15px;
+            border: 1px solid var(--border);
+        }
+        .function-card .fn-header {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 12px;
+        }
+        .function-card .fn-name {
+            font-weight: 700; font-size: 1.05rem;
+            color: var(--fn-name);
+        }
+        .score-badge {
+            display: inline-block; padding: 4px 14px;
+            border-radius: 16px; font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .score-high { background: var(--score-high-bg); color: var(--score-high-fg); }
+        .score-mid { background: var(--score-mid-bg); color: var(--score-mid-fg); }
+        .score-low { background: var(--score-low-bg); color: var(--score-low-fg); }
+        .issue-list { list-style: none; padding: 0; }
+        .issue-list li {
+            padding: 6px 0; border-bottom: 1px solid var(--border);
+            font-size: 0.88rem;
+        }
+        .issue-list li:last-child { border-bottom: none; }
+        .pct-cell { text-align: right; font-weight: 600; }
+        .pct-good { color: var(--pct-good); }
+        .pct-warn { color: var(--pct-warn); }
+        .pct-bad { color: var(--pct-bad); }
+        .footer {
+            text-align: center; color: var(--text-dim);
+            font-size: 0.8rem; margin-top: 40px;
+            padding: 15px;
+        }
+        #theme-toggle {
+            position: fixed; top: 15px; right: 15px; z-index: 1000;
+            background: var(--card); border: 1px solid var(--border);
+            color: var(--text); font-size: 1.3rem; width: 40px; height: 40px;
+            border-radius: 50%; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+        }
+    </style>
+</head>
+<body>
+<button id="theme-toggle" onclick="toggleTheme()">&#x1F319;</button>
+<div class="container">
+
+    <div class="header">
+        <h1>Lambda Security Scanner Report</h1>
+        <div class="subtitle">
+            Generated {{ summary.get('scan_timestamp', '') }}
+            &middot; Region: {{ summary.get('region', 'N/A') }}
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="cards">
+        <div class="card">
+            <div class="value">
+                {{ summary.get('total_functions', 0) }}
+            </div>
+            <div class="label">Total Functions</div>
+        </div>
+        <div class="card {% if summary.get('average_security_score', 0) < 50 %}danger{% elif summary.get('average_security_score', 0) < 75 %}warning{% else %}success{% endif %}">
+            <div class="value">
+                {{ summary.get('average_security_score', 0) }}
+            </div>
+            <div class="label">Avg Security Score</div>
+        </div>
+        <div class="card {% if summary.get('public_functions', 0) > 0 %}danger{% endif %}">
+            <div class="value">
+                {{ summary.get('public_functions', 0) }}
+            </div>
+            <div class="label">Public Functions</div>
+        </div>
+        <div class="card {% if summary.get('secrets_found', 0) > 0 %}danger{% endif %}">
+            <div class="value">
+                {{ summary.get('secrets_found', 0) }}
+            </div>
+            <div class="label">Secrets Found</div>
+        </div>
+    </div>
+
+    <!-- Severity Distribution -->
+    <h2>Finding Severity Distribution</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Severity</th>
+                <th>Count</th>
+                <th style="width: 60%">Distribution</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set sev_labels = ['CRITICAL','HIGH','MEDIUM','LOW','INFO'] %}
+            {% set sev_classes = ['bar-critical','bar-high','bar-medium','bar-low','bar-info'] %}
+            {% set badge_classes = ['badge-critical','badge-high','badge-medium','badge-low','badge-info'] %}
+            {% set total_issues = severity_counts | sum %}
+            {% for i in range(5) %}
+            <tr>
+                <td>
+                    <span class="badge {{ badge_classes[i] }}">
+                        {{ sev_labels[i] }}
+                    </span>
+                </td>
+                <td>{{ severity_counts[i] }}</td>
+                <td>
+                    <div class="bar-container">
+                        <div class="bar {{ sev_classes[i] }}"
+                             style="width: {{ (severity_counts[i] / total_issues * 100) if total_issues > 0 else 0 }}%">
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Score Distribution -->
+    <h2>Security Score Distribution</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Score Range</th>
+                <th>Functions</th>
+                <th style="width: 60%">Distribution</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set score_labels = ['0-20','21-40','41-60','61-80','81-100'] %}
+            {% set score_classes = ['score-bar-0-20','score-bar-21-40','score-bar-41-60','score-bar-61-80','score-bar-81-100'] %}
+            {% set total_funcs = security_score_distribution | sum %}
+            {% for i in range(5) %}
+            <tr>
+                <td>{{ score_labels[i] }}</td>
+                <td>{{ security_score_distribution[i] }}</td>
+                <td>
+                    <div class="bar-container">
+                        <div class="bar {{ score_classes[i] }}"
+                             style="width: {{ (security_score_distribution[i] / total_funcs * 100) if total_funcs > 0 else 0 }}%">
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Compliance Summary -->
+    {% if compliance_summary %}
+    <h2>Compliance Framework Summary</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Framework</th>
+                <th>Compliant</th>
+                <th>Non-Compliant</th>
+                <th>Total</th>
+                <th>Compliance %</th>
+                <th>Avg Score %</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fw, data in compliance_summary.items() %}
+            <tr>
+                <td><strong>{{ fw }}</strong></td>
+                <td>{{ data.compliant_functions }}</td>
+                <td>{{ data.non_compliant_functions }}</td>
+                <td>{{ data.total_functions }}</td>
+                <td class="pct-cell {% if data.compliance_percentage >= 80 %}pct-good{% elif data.compliance_percentage >= 50 %}pct-warn{% else %}pct-bad{% endif %}">
+                    {{ data.compliance_percentage }}%
+                </td>
+                <td class="pct-cell {% if data.average_compliance_percentage >= 80 %}pct-good{% elif data.average_compliance_percentage >= 50 %}pct-warn{% else %}pct-bad{% endif %}">
+                    {{ data.average_compliance_percentage }}%
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Per-Function Details -->
+    <h2>Function Details</h2>
+    {% for r in results %}
+    <div class="function-card">
+        <div class="fn-header">
+            <span class="fn-name">
+                {{ r.get('function_name', 'Unknown') }}
+            </span>
+            {% set score = r.get('security_score', 0) or 0 %}
+            <span class="score-badge {% if score >= 80 %}score-high{% elif score >= 50 %}score-mid{% else %}score-low{% endif %}">
+                Score: {{ score }}
+            </span>
+        </div>
+        <div style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 10px;">
+            Runtime: {{ r.get('runtime', 'N/A') }}
+            &middot; Memory: {{ r.get('memory_size', 'N/A') }} MB
+            &middot; Timeout: {{ r.get('timeout', 'N/A') }}s
+        </div>
+        {% set issues = r.get('issues', []) %}
+        {% if issues %}
+        <ul class="issue-list">
+            {% for issue in issues %}
+            <li>
+                <span class="badge badge-{{ issue.get('severity', 'INFO') | lower }}">
+                    {{ issue.get('severity', 'INFO') }}
+                </span>
+                {{ issue.get('title', '') }}
+                {% if issue.get('description') %}
+                <span style="color: var(--text-dim);">
+                    &mdash; {{ issue.get('description', '') }}
+                </span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div style="color: var(--success); font-size: 0.9rem;">
+            No issues found.
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="footer">
+        Lambda Security Scanner &middot;
+        Toc Consulting &middot;
+        <a href="https://github.com/TocConsulting/lambda-security-scanner"
+           style="color: var(--link);">GitHub</a>
+    </div>
+
+</div>
+
+<script>
+    function toggleTheme() {
+        const html = document.documentElement;
+        const current = html.getAttribute('data-theme');
+        const next = current === 'light' ? 'dark' : 'light';
+        if (next === 'dark') html.removeAttribute('data-theme');
+        else html.setAttribute('data-theme', 'light');
+        localStorage.setItem('lambda-report-theme', next);
+        document.getElementById('theme-toggle').textContent = next === 'light' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+    }
+
+    (function() {
+        const saved = localStorage.getItem('lambda-report-theme');
+        if (saved === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.getElementById('theme-toggle').textContent = '\u2600\uFE0F';
+        }
+    })();
+</script>
+</body>
+</html>
