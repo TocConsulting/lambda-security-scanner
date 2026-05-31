@@ -14,6 +14,10 @@
 
 A comprehensive AWS Lambda security scanner with 19 security checks across 5 categories and compliance mapping for 10 frameworks (81 controls). Features multi-threaded scanning, secret detection in environment variables, and interactive HTML dashboards.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/TocConsulting/lambda-security-scanner/main/assets/demo.gif" alt="Lambda Security Scanner demo: secrets, public URLs, IAM, and multi-framework compliance" width="100%">
+</p>
+
 ## Key Features
 
 ### **Comprehensive Security Analysis**
