@@ -387,6 +387,36 @@ class TestCheckExecutionRole(TestCase):
         self.assertTrue(result["has_privilege_escalation"])
         self.assertFalse(result["has_admin_access"])
 
+    def test_privilege_escalation_scoped_to_own_role(self):
+        # A privesc action scoped to a specific role ARN (e.g. the role's own
+        # ARN) is still a complete self-escalation and must be flagged. This is
+        # the cleverest variant: it looks responsibly scoped in review.
+        self._setup_paginators(
+            inline_names=["inline-policy"]
+        )
+        self.mock_client.get_role_policy.return_value = {
+            "PolicyDocument": {
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": "iam:PutRolePolicy",
+                        "Resource": (
+                            "arn:aws:iam::123:role/priv-role"
+                        ),
+                    }
+                ]
+            }
+        }
+        result = self.checker.check_execution_role(
+            "arn:aws:iam::123:role/priv-role",
+            "us-east-1",
+        )
+        self.assertTrue(result["has_privilege_escalation"])
+        self.assertIn(
+            "iam:PutRolePolicy",
+            result["dangerous_permissions"],
+        )
+
     def test_clean_role(self):
         self._setup_paginators()
         result = self.checker.check_execution_role(

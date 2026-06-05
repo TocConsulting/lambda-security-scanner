@@ -584,33 +584,25 @@ class AccessControlChecker(BaseChecker):
             if isinstance(actions, str):
                 actions = [actions]
 
-            resources = stmt.get("Resource", [])
-            if isinstance(resources, str):
-                resources = [resources]
-
-            has_wildcard_resource = "*" in resources
-
             for action in actions:
                 # Check for wildcard actions
                 if action == "*" or action.endswith(":*"):
                     if action not in dangerous_permissions:
                         dangerous_permissions.append(action)
 
-                # Check for privilege escalation actions
-                # with wildcard resource
-                if has_wildcard_resource:
-                    for priv_action in (
-                        PRIVILEGE_ESCALATION_ACTIONS
+                # Check for privilege escalation actions.
+                # Resource scope does NOT make these safe: an action such as
+                # iam:PutRolePolicy scoped to the principal's own role ARN is a
+                # complete self-escalation (the role grants itself *:*). Flag
+                # the action regardless of resource; the resource only affects
+                # severity, not whether it is a finding.
+                action_lower = action.lower()
+                for priv_action in PRIVILEGE_ESCALATION_ACTIONS:
+                    if (
+                        action_lower == priv_action.lower()
+                        and action not in dangerous_permissions
                     ):
-                        if (
-                            action.lower()
-                            == priv_action.lower()
-                            and action
-                            not in dangerous_permissions
-                        ):
-                            dangerous_permissions.append(
-                                action
-                            )
+                        dangerous_permissions.append(action)
 
     def check_shared_role(
         self, role_arn: str, all_role_arns: List[str]
