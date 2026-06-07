@@ -626,3 +626,126 @@ class AccessControlChecker(BaseChecker):
             "shared_count": count,
             "role_arn": role_arn,
         }
+
+    def check_destinations(
+        self, function_name: str, region: str, account_id: str
+    ) -> Dict:
+        """B.6: Check async-invoke destinations for external accounts.
+
+        An attacker who can call PutFunctionEventInvokeConfig points a
+        function's OnSuccess/OnFailure destination (SQS, SNS, Lambda, or
+        EventBridge) at a target in their own account, exfiltrating every
+        async invocation result or payload. The configuration keeps firing
+        after the attacker's access is revoked.
+
+        Args:
+            function_name: Lambda function name or ARN.
+            region: AWS region name.
+            account_id: AWS account ID of the scanning account.
+
+        Returns:
+            Dict with has_destinations, destinations,
+            has_external_destination, and external_destinations.
+        """
+        client = self.get_client("lambda", region)
+        try:
+            response = client.get_function_event_invoke_config(
+                FunctionName=function_name
+            )
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get(
+                "Code", "Unknown"
+            )
+            if error_code == "ResourceNotFoundException":
+                return {
+                    "has_destinations": False,
+                    "destinations": [],
+                    "has_external_destination": False,
+                    "external_destinations": [],
+                }
+            return self.handle_client_error(
+                e,
+                {
+                    "has_destinations": False,
+                    "destinations": [],
+                    "has_external_destination": False,
+                    "external_destinations": [],
+                },
+            )
+
+        dest_config = response.get("DestinationConfig", {})
+        targets: List[str] = []
+        for key in ("OnSuccess", "OnFailure"):
+            arn = dest_config.get(key, {}).get("Destination")
+            if arn:
+                targets.append(arn)
+
+        external: List[str] = []
+        for arn in targets:
+            # arn:aws:<service>:<region>:<account-id>:<resource>
+            parts = arn.split(":")
+            if len(parts) >= 5:
+                target_account = parts[4]
+                if target_account and target_account != account_id:
+                    external.append(arn)
+
+        return {
+            "has_destinations": len(targets) > 0,
+            "destinations": targets,
+            "has_external_destination": len(external) > 0,
+            "external_destinations": external,
+        }
+
+    def check_aliases(
+        self, function_name: str, region: str
+    ) -> Dict:
+        """B.7: Check for alias traffic shadowing.
+
+        A weighted alias (RoutingConfig.AdditionalVersionWeights) sends a
+        fraction of invocations to a second version. An attacker who can
+        publish a version and call UpdateAlias uses this to quietly serve
+        backdoored code to a slice of traffic while the primary version still
+        looks clean, a stealthy persistence technique. Aliases with a routing
+        config are surfaced for review.
+
+        Args:
+            function_name: Lambda function name or ARN.
+            region: AWS region name.
+
+        Returns:
+            Dict with alias_count, shadowed_aliases, and
+            has_shadowed_alias.
+        """
+        client = self.get_client("lambda", region)
+        try:
+            response = client.list_aliases(
+                FunctionName=function_name
+            )
+        except ClientError as e:
+            return self.handle_client_error(
+                e,
+                {
+                    "alias_count": 0,
+                    "shadowed_aliases": [],
+                    "has_shadowed_alias": False,
+                },
+            )
+
+        aliases = response.get("Aliases", [])
+        shadowed: List[Dict] = []
+        for alias in aliases:
+            weights = alias.get("RoutingConfig", {}).get(
+                "AdditionalVersionWeights", {}
+            )
+            if weights:
+                shadowed.append({
+                    "name": alias.get("Name"),
+                    "primary_version": alias.get("FunctionVersion"),
+                    "additional_versions": weights,
+                })
+
+        return {
+            "alias_count": len(aliases),
+            "shadowed_aliases": shadowed,
+            "has_shadowed_alias": len(shadowed) > 0,
+        }

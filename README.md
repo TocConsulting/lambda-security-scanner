@@ -12,7 +12,7 @@
   <a href="https://aws.amazon.com/lambda/"><img src="https://img.shields.io/badge/AWS-Lambda-orange.svg" alt="AWS"></a>
 </p>
 
-A comprehensive AWS Lambda security scanner with 19 security checks across 5 categories and compliance mapping for 10 frameworks (81 controls). Features multi-threaded scanning, secret detection in environment variables, and interactive HTML dashboards.
+A comprehensive AWS Lambda security scanner with 21 security checks across 5 categories and compliance mapping for 10 frameworks (81 controls). Features multi-threaded scanning, secret detection in environment variables, and interactive HTML dashboards.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/TocConsulting/lambda-security-scanner/main/assets/demo.gif" alt="Lambda Security Scanner demo: secrets, public URLs, IAM, and multi-framework compliance" width="100%">
@@ -22,7 +22,7 @@ A comprehensive AWS Lambda security scanner with 19 security checks across 5 cat
 
 ### **Comprehensive Security Analysis**
 - **Function Configuration**: Deprecated runtime detection, timeout tuning, environment variable secret scanning, ephemeral storage, external layers, X-Ray tracing, dead letter queues
-- **Access Control**: Resource policy public access, function URL authentication, CORS wildcard origins, overly permissive execution roles, shared role detection
+- **Access Control**: Resource policy public access, function URL authentication, CORS wildcard origins, overly permissive execution roles, shared role detection, cross-account async-invoke destinations, alias traffic shadowing
 - **Network Security**: VPC configuration, multi-AZ deployment, unrestricted security group egress
 - **Logging & Monitoring**: CloudWatch log group validation, log retention policies, reserved concurrency
 - **Code & Supply Chain**: Code signing configuration, event source mapping failure destinations
@@ -139,7 +139,7 @@ lambda-security-scanner security -f json -q
 
 ## Security Checks
 
-### 19 Checks Across 5 Categories
+### 21 Checks Across 5 Categories
 
 | ID  | Check                                    | Severity          | Category              |
 |-----|------------------------------------------|-------------------|-----------------------|
@@ -155,6 +155,8 @@ lambda-security-scanner security -f json -q
 | B.3 | Function URL CORS allows all origins     | HIGH              | Access Control        |
 | B.4 | Overly permissive execution role         | CRITICAL/HIGH     | Access Control        |
 | B.5 | Shared execution role                    | HIGH              | Access Control        |
+| B.6 | Async-invoke destination to external account | CRITICAL      | Access Control        |
+| B.7 | Alias traffic shadowing (weighted alias) | MEDIUM            | Access Control        |
 | C.1 | No VPC configuration                     | LOW               | Network Security      |
 | C.2 | VPC single AZ                            | MEDIUM            | Network Security      |
 | C.3 | Unrestricted SG egress                   | MEDIUM            | Network Security      |
@@ -287,6 +289,8 @@ docker run --rm \
             "lambda:GetCodeSigningConfig",
             "lambda:GetFunctionConcurrency",
             "lambda:ListEventSourceMappings",
+            "lambda:GetFunctionEventInvokeConfig",
+            "lambda:ListAliases",
             "iam:ListAttachedRolePolicies",
             "iam:GetPolicy",
             "iam:GetPolicyVersion",
@@ -395,7 +399,7 @@ lambda_security_scanner/
 ├── checks/                     # Security check modules
 │   ├── base.py                 # BaseChecker (session factory, error handling)
 │   ├── function_config.py      # A.1-A.7: Runtime, secrets, layers, tracing
-│   ├── access_control.py       # B.1-B.5: Policies, URLs, roles
+│   ├── access_control.py       # B.1-B.7: Policies, URLs, roles, destinations, aliases
 │   ├── network_security.py     # C.1-C.3: VPC, AZ, security groups
 │   ├── logging_monitoring.py   # D.1-D.2: Log groups, concurrency
 │   └── code_security.py        # E.1-E.2: Code signing, ESM

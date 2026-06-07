@@ -167,7 +167,7 @@ class LambdaSecurityScanner:
         progress=None,
         task=None,
     ) -> Dict[str, Any]:
-        """Run all 19 checks for a single function."""
+        """Run all 21 checks for a single function."""
         func_name = func_config.get(
             "FunctionName", "unknown"
         )
@@ -218,7 +218,7 @@ class LambdaSecurityScanner:
                 )
             )
 
-            # B. Access Control (B.1-B.5)
+            # B. Access Control (B.1-B.7)
             checks["resource_policy"] = (
                 self.access_checker.check_resource_policy(
                     func_name, self.region
@@ -242,6 +242,16 @@ class LambdaSecurityScanner:
             checks["shared_role"] = (
                 self.access_checker.check_shared_role(
                     role_arn, all_role_arns
+                )
+            )
+            checks["destinations"] = (
+                self.access_checker.check_destinations(
+                    func_name, self.region, self.account_id
+                )
+            )
+            checks["aliases"] = (
+                self.access_checker.check_aliases(
+                    func_name, self.region
                 )
             )
 
@@ -522,6 +532,31 @@ class LambdaSecurityScanner:
                 "Execution role is shared across "
                 "functions",
                 "Create unique roles per function",
+            )
+
+        # B.6 External-account async destination
+        dest = checks.get("destinations", {})
+        if dest.get("has_external_destination"):
+            add(
+                "CRITICAL", "external_account_destination",
+                "Async-invoke destination points to an external "
+                "account: "
+                f"{dest.get('external_destinations', [])}",
+                "Remove the cross-account destination and restrict "
+                "lambda:PutFunctionEventInvokeConfig; allow-list any "
+                "intended account",
+            )
+
+        # B.7 Alias traffic shadowing
+        alias = checks.get("aliases", {})
+        if alias.get("has_shadowed_alias"):
+            add(
+                "MEDIUM", "alias_traffic_shadowing",
+                "Alias splits traffic to additional versions "
+                "(possible shadow version): "
+                f"{alias.get('shadowed_aliases', [])}",
+                "Verify the additional versions are intended and "
+                "restrict lambda:UpdateAlias / lambda:PublishVersion",
             )
 
         # C.1 VPC

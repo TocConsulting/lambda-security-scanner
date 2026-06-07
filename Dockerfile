@@ -2,7 +2,7 @@ FROM python:3.11-slim-bookworm
 
 LABEL maintainer="Toc Consulting <tarek@tocconsulting.fr>"
 LABEL description="AWS Lambda security scanner with multi-framework compliance mapping"
-LABEL version="1.0.1"
+LABEL version="1.0.2"
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1

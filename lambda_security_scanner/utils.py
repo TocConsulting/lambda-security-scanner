@@ -104,6 +104,14 @@ def calculate_security_score(checks: Dict[str, Any]) -> int:
     if get("shared_role", "is_shared"):
         score -= 10
 
+    # B.6: Async-invoke destination to an external account (CRITICAL)
+    if get("destinations", "has_external_destination"):
+        score -= 20
+
+    # B.7: Alias splits traffic to a shadow version (MEDIUM)
+    if get("aliases", "has_shadowed_alias"):
+        score -= 5
+
     # A.6: Tracing not enabled (observability hygiene, LOW)
     if not get("tracing", "enabled"):
         score -= 2

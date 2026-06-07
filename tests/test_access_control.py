@@ -454,3 +454,101 @@ class TestCheckSharedRole(TestCase):
         )
         self.assertTrue(result["is_shared"])
         self.assertEqual(result["shared_count"], 2)
+
+
+class TestCheckDestinations(TestCase):
+    """B.6 - Async-invoke destination external-account detection."""
+
+    def setUp(self):
+        self.mock_client = Mock()
+        mock_session = Mock()
+        mock_session.client.return_value = self.mock_client
+        self.checker = AccessControlChecker(lambda: mock_session)
+
+    def test_no_event_invoke_config(self):
+        self.mock_client.get_function_event_invoke_config.side_effect = (
+            _resource_not_found("GetFunctionEventInvokeConfig")
+        )
+        result = self.checker.check_destinations(
+            "fn", "us-east-1", "111111111111"
+        )
+        self.assertFalse(result["has_destinations"])
+        self.assertFalse(result["has_external_destination"])
+
+    def test_external_account_destination(self):
+        self.mock_client.get_function_event_invoke_config.return_value = {
+            "DestinationConfig": {
+                "OnSuccess": {
+                    "Destination":
+                    "arn:aws:sqs:us-east-1:999999999999:attacker-q"
+                },
+                "OnFailure": {
+                    "Destination":
+                    "arn:aws:sqs:us-east-1:111111111111:dlq"
+                },
+            }
+        }
+        result = self.checker.check_destinations(
+            "fn", "us-east-1", "111111111111"
+        )
+        self.assertTrue(result["has_destinations"])
+        self.assertTrue(result["has_external_destination"])
+        self.assertEqual(len(result["external_destinations"]), 1)
+        self.assertIn(
+            "999999999999", result["external_destinations"][0]
+        )
+
+    def test_same_account_destination_not_flagged(self):
+        self.mock_client.get_function_event_invoke_config.return_value = {
+            "DestinationConfig": {
+                "OnSuccess": {
+                    "Destination":
+                    "arn:aws:sns:us-east-1:111111111111:ok"
+                }
+            }
+        }
+        result = self.checker.check_destinations(
+            "fn", "us-east-1", "111111111111"
+        )
+        self.assertTrue(result["has_destinations"])
+        self.assertFalse(result["has_external_destination"])
+
+
+class TestCheckAliases(TestCase):
+    """B.7 - Alias traffic-shadowing detection."""
+
+    def setUp(self):
+        self.mock_client = Mock()
+        mock_session = Mock()
+        mock_session.client.return_value = self.mock_client
+        self.checker = AccessControlChecker(lambda: mock_session)
+
+    def test_no_routing_config_not_flagged(self):
+        self.mock_client.list_aliases.return_value = {
+            "Aliases": [
+                {"Name": "prod", "FunctionVersion": "7"}
+            ]
+        }
+        result = self.checker.check_aliases("fn", "us-east-1")
+        self.assertEqual(result["alias_count"], 1)
+        self.assertFalse(result["has_shadowed_alias"])
+
+    def test_weighted_alias_flagged(self):
+        self.mock_client.list_aliases.return_value = {
+            "Aliases": [{
+                "Name": "prod",
+                "FunctionVersion": "7",
+                "RoutingConfig": {
+                    "AdditionalVersionWeights": {"8": 0.1}
+                },
+            }]
+        }
+        result = self.checker.check_aliases("fn", "us-east-1")
+        self.assertTrue(result["has_shadowed_alias"])
+        self.assertEqual(
+            result["shadowed_aliases"][0]["primary_version"], "7"
+        )
+        self.assertIn(
+            "8",
+            result["shadowed_aliases"][0]["additional_versions"],
+        )
