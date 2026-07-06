@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/TocConsulting/lambda-security-scanner/main/assets/lambda-security-scanner-logo.png" alt="Lambda Security Scanner" style="max-width: 100%; height: auto;">
+  <img src="https://raw.githubusercontent.com/TocConsulting/lambda-security-scanner/main/assets/lambda-security-scanner-logo.png" alt="lambda-security-scanner" width="480" style="height: auto;">
 </p>
 
 <p align="center">
@@ -57,7 +57,10 @@ A comprehensive AWS Lambda security scanner with 21 security checks across 5 cat
 ### Installation
 
 ```bash
-# Install from source
+# Install from PyPI
+pip install lambda-security-scanner
+
+# Or install from source
 git clone https://github.com/TocConsulting/lambda-security-scanner.git
 cd lambda-security-scanner
 pip install .
@@ -66,8 +69,8 @@ pip install .
 ### Docker Installation
 
 ```bash
-# Build from source
-docker build -t lambda-security-scanner .
+# Pull from Docker Hub
+docker pull tarekcheikh/lambda-security-scanner:latest
 ```
 
 ### Basic Usage
@@ -201,36 +204,56 @@ The scanner decodes and scans Lambda environment variables for exposed secrets:
 
 ## Docker Usage
 
+Run the scanner using Docker without installing Python dependencies locally.
+
+### Pull the Docker Image
+
+```bash
+# Pull the latest version
+docker pull tarekcheikh/lambda-security-scanner:latest
+
+# Or pin a specific version (replace X.Y.Z with the release you want)
+docker pull tarekcheikh/lambda-security-scanner:X.Y.Z
+```
+
 ### Basic Docker Commands
 
 ```bash
 # Show help
-docker run --rm lambda-security-scanner --help
+docker run --rm tarekcheikh/lambda-security-scanner --help
 
 # Show security command help
-docker run --rm lambda-security-scanner security --help
+docker run --rm tarekcheikh/lambda-security-scanner security --help
 ```
 
 ### Security Scanning with Docker
+
+**AWS Credentials:** The examples below mount `~/.aws` to provide credentials. If `--profile` is not specified, the scanner uses boto3's default credential chain (environment variables, then `AWS_PROFILE`, then the `default` profile).
 
 ```bash
 # Scan using mounted AWS credentials
 docker run --rm \
   -v ~/.aws:/root/.aws:ro \
   -v $(pwd)/output:/app/output \
-  lambda-security-scanner security
+  tarekcheikh/lambda-security-scanner security
 
 # Scan with specific AWS profile
 docker run --rm \
   -v ~/.aws:/root/.aws:ro \
   -v $(pwd)/output:/app/output \
-  lambda-security-scanner security --profile production
+  tarekcheikh/lambda-security-scanner security --profile production
 
 # Scan specific functions
 docker run --rm \
   -v ~/.aws:/root/.aws:ro \
   -v $(pwd)/output:/app/output \
-  lambda-security-scanner security -n my-function
+  tarekcheikh/lambda-security-scanner security -n my-function
+
+# Compliance-only scan
+docker run --rm \
+  -v ~/.aws:/root/.aws:ro \
+  -v $(pwd)/output:/app/output \
+  tarekcheikh/lambda-security-scanner security --compliance-only
 ```
 
 ### Using Environment Variables for AWS Credentials
@@ -241,7 +264,7 @@ docker run --rm \
   -e AWS_SECRET_ACCESS_KEY \
   -e AWS_DEFAULT_REGION=us-east-1 \
   -v $(pwd)/output:/app/output \
-  lambda-security-scanner security
+  tarekcheikh/lambda-security-scanner security
 
 # With session token (for temporary credentials/assumed roles)
 docker run --rm \
@@ -250,7 +273,7 @@ docker run --rm \
   -e AWS_SESSION_TOKEN \
   -e AWS_DEFAULT_REGION=us-east-1 \
   -v $(pwd)/output:/app/output \
-  lambda-security-scanner security
+  tarekcheikh/lambda-security-scanner security
 ```
 
 ### Docker Volume Mounts
@@ -258,7 +281,9 @@ docker run --rm \
 | Mount | Purpose |
 |-------|---------|
 | `-v ~/.aws:/root/.aws:ro` | Mount AWS credentials (read-only) |
-| `-v $(pwd)/output:/app/output` | Save reports to local directory |
+| `-v $(pwd)/output:/app/output` | Save reports to your local `./output` directory |
+
+**Important:** Without the output volume mount, report files will not be accessible after the container exits.
 
 ## Prerequisites
 
